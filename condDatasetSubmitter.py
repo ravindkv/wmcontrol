@@ -584,7 +584,7 @@ def createCMSSWConfigs(options,confCondDictionary,allRunsAndBlocks):
                         'globaltag =%s \n' % (gtshort)
 
     wmcconf_text += 'campaign=%s__ALCARELVAL-%s\n' % (options.release,datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")) +\
-                    'acquisition_era=%s\n' % (options.release) 
+                    'acquisition_era=%s\n' % (options.release)
 
     wmcconf_text += 'dset_run_dict= {'
     for ds in options.ds:
@@ -713,7 +713,7 @@ def createCMSSWConfigs(options,confCondDictionary,allRunsAndBlocks):
             wmcconf_text += 'harvest_cfg=step4_%s_HARVESTING.py\n\n' % (label)
         else:
             ds_name = ds[:1].replace("/","") + ds[1:].replace("/","_")
-            ds_name = ds_name.replace("-","_") 
+            ds_name = ds_name.replace("-","_")
             label = cfgname.lower().replace('.py', '')[0:5]
             wmcconf_text += '\n\n[%s_%s]\n' % (details['reqtype'], label) +\
                             'request_id=%s__ALCARELVAL-%s_%s_%s\n' % (options.release,datetime.datetime.now().strftime("%Y_%m_%d_%H_%M"),ds_name,label) +\
@@ -862,3 +862,5 @@ if __name__ == "__main__":
 
     # Print some info about final workflow
     printInfo(options)
+
+# The game has begun !!
