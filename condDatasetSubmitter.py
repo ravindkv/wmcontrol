@@ -13,7 +13,7 @@ sys.path.append('/afs/cern.ch/cms/PPD/PdmV/tools/prod/devel/')
 from phedex import phedex
 from modules import wma
 
-DRYRUN = False
+DRYRUN = False 
 
 #-------------------------------------------------------------------------------
 
@@ -270,7 +270,8 @@ def getDriverDetails(Type, release, ds, B0T, HIon, pA, recoRelease):
     elif Type in ['HLT+RECO','HLT+RECO+ALCA']:
         if options.HLT:
             HLTBase.update({"steps":"L1REPACK:Full,HLT:%s" % (options.HLT),
-                            "custcommands":"\ntry:\n\tif process.RatesMonitoring in process.schedule: process.schedule.remove( process.RatesMonitoring );\nexcept: pass",
+                            #"custcommands":"\ntry:\n\tif process.RatesMonitoring in process.schedule: process.schedule.remove( process.RatesMonitoring );\nexcept: pass",
+                            "custcommands":"\ntry:\n\tif process.unpackGt_step in process.schedule: process.schedule.add( process.unpackGt_step );\nexcept: pass",
                             "custconditions":"",
                             #"output":'[{"e":"RAW","t":"RAW","o":["drop FEDRawDataCollection_rawDataCollector__LHC"]}]',
                             "output":'',
@@ -395,7 +396,7 @@ def createHLTConfig(options):
 
     patch_command = "sed -i 's/+ fragment.hltDQMFileSaver//g' %s/src/HLTrigger/Configuration/python/HLT_%s_cff.py" % (options.hltCmsswDir, options.HLT)
     patch_command2 = "sed -i 's/, fragment.DQMHistograms//g' %s/src/HLTrigger/Configuration/python/HLT_%s_cff.py" % (options.hltCmsswDir, options.HLT)
-
+ 
     if (is_hltGetConfigurationOK(getCMSSWReleaseFromPath(options.hltCmsswDir))):
         execme(cmssw_command + '; ' + hlt_command + '; ' + build_command)
     else:
@@ -452,8 +453,24 @@ def createCMSSWConfigs(options,confCondDictionary,allRunsAndBlocks):
             driver_command += '--customise_commands="%s" ' % (details['custcommands'])
 
         cmssw_command = "cd %s; eval `scramv1 runtime -sh`; cd -" % (options.hltCmsswDir)
+        print 'For REF and NEWCO'
+        patch_command = "sed -i 's/+ fragment.hltDQMFileSaver//g' %s/src/HLTrigger/Configuration/python/HLT_%s_cff.py" % (options.hltCmsswDir, options.HLT)
+        sed_command_sistrip_pattern1  = "process.DQMoutput_step = cms.EndPath(process.DQMoutput)"
+        sed_command_sistrip_line1     = "import EventFilter.L1TRawToDigi.gtStage2Digis_cfi"
+        sed_command_sistrip_line2     = "process.unpackGtStage2 = EventFilter.L1TRawToDigi.gtStage2Digis_cfi.gtStage2Digis.clone("
+        sed_command_sistrip_line3     = "    InputLabel = cms.InputTag( 'rawDataCollector', processName=cms.InputTag.skipCurrentProcess())"
+        sed_command_sistrip_line4     = ")"
+        sed_command_sistrip_line5     = "process.unpackGt_step = cms.Path(process.unpackGtStage2)"
+        sed_command_sistrip1           = "sed -i '/%s/a%s\\n%s\\n%s\\n%s\\n%s' %s" % (sed_command_sistrip_pattern1,sed_command_sistrip_line1,sed_command_sistrip_line2,sed_command_sistrip_line3,sed_command_sistrip_line4,sed_command_sistrip_line5,cfgname)
+        sed_command_sistrip_line6     = "process.simGtStage2Digis.ExtInputTag = cms.InputTag(\"unpackGtStage2\")"
+        sed_command_sistrip_line7     = "process.simGtStage2Digis.EmulateBxInEvent = cms.int32(5)"
+        sed_command_sistrip_line8     = "process.packGtStage2.ExtInputTag = cms.InputTag(\"unpackGtStage2\")"
+        sed_command_sistrip_line9     = "from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete"
+        sed_command_sistrip_line10    = "process = customiseEarlyDelete(process)"
+        sed_command_sistrip2           = "sed -i '$a%s\\n%s\\n%s\\n%s\\n%s' %s" % (sed_command_sistrip_line6,sed_command_sistrip_line7,sed_command_sistrip_line8,sed_command_sistrip_line9,sed_command_sistrip_line10,cfgname)
+        #sed_command_sistrip           = sed_command_sistrip1 + sed_command_sistrip2
         upload_command = "wmupload.py -u %s -g PPD -l %s %s"% (os.getenv('USER'), cfgname, cfgname)
-        execme(cmssw_command + '; ' + driver_command + '; ' + upload_command)
+        execme(cmssw_command + '; ' + driver_command + '; ' + sed_command_sistrip1 + "; " + sed_command_sistrip2 + '; ' + upload_command) ##REF and NEWCO
         base = None
 
         if 'base' in details:
@@ -505,7 +522,7 @@ def createCMSSWConfigs(options,confCondDictionary,allRunsAndBlocks):
                 upload_command = "wmupload.py -u %s -g PPD -l %s %s" % (os.getenv('USER'),
                         'recodqm.py', 'recodqm.py')
 
-                execme(cmssw_command + '; ' + driver_command + '; ' + upload_command)
+                execme(cmssw_command + '; ' + driver_command + '; ' + upload_command) ##recodqm
             else:
                 execme(driver_command)
 
@@ -532,7 +549,7 @@ def createCMSSWConfigs(options,confCondDictionary,allRunsAndBlocks):
                 upload_command = "wmupload.py -u %s -g PPD -l %s %s" % (os.getenv('USER'),
                         'step4_%s_HARVESTING.py' % label,'step4_%s_HARVESTING.py' % label)
 
-                execme(cmssw_command + '; ' + driver_command + '; ' + upload_command)
+                execme(cmssw_command + '; ' + driver_command + '; ' + upload_command)##harversing
             else:
                 execme(driver_command)
         else:
